@@ -3,7 +3,7 @@
 
 -- 1. Crear el usuario (rol) que utilizará WordPress
 -- Cambia 'tu_contraseña_segura' por una contraseña real y segura.
-CREATE USER usuario_woo WITH PASSWORD 'tu_contraseña_segura';
+CREATE USER usuario_woo WITH PASSWORD '1234';
 
 -- 2. Crear la base de datos
 -- Se asigna usuario_woo como dueño y se establece codificación UTF8.
