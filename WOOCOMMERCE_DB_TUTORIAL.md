@@ -1,180 +1,155 @@
-# Tutorial: Crear e Integrar una Base de Datos con WooCommerce
+# Tutorial: Integración de PostgreSQL con WooCommerce
 
-Este tutorial te guiará paso a paso en el proceso de creación de una base de datos para WooCommerce y cómo interactuar con ella.
+Este documento detalla el procedimiento técnico para implementar una base de datos PostgreSQL en un entorno de WordPress y WooCommerce.
 
-WooCommerce funciona sobre WordPress, por lo que "la base de datos de WooCommerce" es técnicamente la base de datos de WordPress con tablas adicionales específicas para comercio electrónico.
+WordPress está diseñado nativamente para MySQL/MariaDB. Para utilizar PostgreSQL, es necesario implementar una capa de abstracción de base de datos (drop-in) que traduzca las consultas SQL.
 
 ---
 
 ## Tabla de Contenidos
 
-1. [Requisitos Previos](#requisitos-previos)
-2. [Paso 1: Diseño y Planificación](#paso-1-diseño-y-planificación)
-3. [Paso 2: Crear la Base de Datos (MySQL/MariaDB)](#paso-2-crear-la-base-de-datos)
-4. [Paso 3: Conexión con WordPress y WooCommerce](#paso-3-conexión-con-wordpress-y-woocommerce)
-5. [Paso 4: Entendiendo la Estructura de Datos de WooCommerce](#paso-4-entendiendo-la-estructura-de-datos-de-woocommerce)
-6. [Paso 5: Integración Avanzada (Tablas Personalizadas)](#paso-5-integración-avanzada-tablas-personalizadas)
+1. [Requisitos del Sistema](#requisitos-del-sistema)
+2. [Paso 1: Preparación del Entorno PostgreSQL](#paso-1-preparación-del-entorno-postgresql)
+3. [Paso 2: Instalación de la Capa de Abstracción (PG4WP)](#paso-2-instalación-de-la-capa-de-abstracción)
+4. [Paso 3: Configuración de WordPress](#paso-3-configuración-de-wordpress)
+5. [Paso 4: Estructura de Datos en PostgreSQL](#paso-4-estructura-de-datos-en-postgresql)
+6. [Paso 5: Desarrollo de Tablas Personalizadas (Sintaxis PostgreSQL)](#paso-5-desarrollo-de-tablas-personalizadas)
 
 ---
 
-## Requisitos Previos
+## Requisitos del Sistema
 
-Antes de comenzar, asegúrate de tener instalado:
-- **Servidor Web**: Apache, Nginx, o un entorno local como XAMPP/Laragon.
-- **Base de Datos**: MySQL (v5.6+) o MariaDB (v10.1+).
-- **PHP**: v7.4 o superior.
-- **Acceso**: Terminal o phpMyAdmin.
-
----
-
-## Paso 1: Diseño y Planificación
-
-WooCommerce utiliza la estructura de tablas de WordPress (`wp_posts`, `wp_postmeta`) para almacenar productos y pedidos, pero añade sus propias tablas optimizadas para búsquedas y atributos.
-
-Si tu objetivo es **sólo instalar WooCommerce**, ve al Paso 2.
-Si tu objetivo es **integrar una base de datos externa** (ej. un ERP o CRM), necesitarás planificar cómo sincronizar los datos (usualmente vía REST API o acceso directo SQL).
+- **Servidor Web**: Apache, Nginx.
+- **Base de Datos**: PostgreSQL 12 o superior.
+- **PHP**: Versión 7.4+ con la extensión `pgsql` o `pdo_pgsql` habilitada.
+- **Plugin de Abstracción**: [PostgreSQL for WordPress (PG4WP)](https://github.com/kevinoid/postgresql-for-wordpress) o similar.
 
 ---
 
-## Paso 2: Crear la Base de Datos
+## Paso 1: Preparación del Entorno PostgreSQL
 
-Tienes dos formas principales de crear la base de datos necesaria para WooCommerce.
+Debemos crear la base de datos y el usuario con los permisos adecuados. Utiliza `psql` o una herramienta como pgAdmin.
 
-### Opción A: Usando phpMyAdmin (Gráfico)
-
-1. Abre **phpMyAdmin** en tu navegador (`http://localhost/phpmyadmin` o la URL de tu hosting).
-2. Haz clic en la pestaña **"Bases de datos"**.
-3. En "Crear base de datos", escribe un nombre (ej: `mi_tienda_woo`).
-4. Selecciona el cotejamiento (collation): `utf8mb4_unicode_ci` (recomendado para soporte completo de caracteres).
-5. Haz clic en **Crear**.
-
-### Opción B: Usando la Terminal (SQL)
-
-Si tienes acceso por línea de comandos:
+### Comandos SQL (Terminal `psql`)
 
 ```sql
--- Conéctate a MySQL
-mysql -u root -p
+-- 1. Crear el usuario (rol)
+CREATE USER usuario_woo WITH PASSWORD 'tu_contraseña_segura';
 
--- Crea la base de datos
-CREATE DATABASE mi_tienda_woo CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+-- 2. Crear la base de datos con codificación UTF8
+CREATE DATABASE mi_tienda_woo OWNER usuario_woo ENCODING 'UTF8';
 
--- Crea un usuario seguro (opcional pero recomendado)
-CREATE USER 'usuario_woo'@'localhost' IDENTIFIED BY 'tu_contraseña_segura';
-
--- Otorga permisos
-GRANT ALL PRIVILEGES ON mi_tienda_woo.* TO 'usuario_woo'@'localhost';
-FLUSH PRIVILEGES;
-EXIT;
+-- 3. Asignar privilegios (si es necesario verificar permisos en esquema public)
+GRANT ALL PRIVILEGES ON DATABASE mi_tienda_woo TO usuario_woo;
 ```
 
 ---
 
-## Paso 3: Conexión con WordPress y WooCommerce
+## Paso 2: Instalación de la Capa de Abstracción
 
-Una vez creada la base de datos vacía, debemos conectarla.
+WordPress no conectará con PostgreSQL sin un controlador específico (`db.php`).
 
-1. **Descarga WordPress**: Bájalo desde [wordpress.org](https://wordpress.org/download/).
-2. **Configura `wp-config.php`**:
-   Renombra el archivo `wp-config-sample.php` a `wp-config.php` y edita los detalles de conexión:
-
-   ```php
-   // Variables de la base de datos
-   define( 'DB_NAME', 'mi_tienda_woo' );
-   define( 'DB_USER', 'usuario_woo' );
-   define( 'DB_PASSWORD', 'tu_contraseña_segura' );
-   define( 'DB_HOST', 'localhost' );
-   define( 'DB_CHARSET', 'utf8mb4' );
-   ```
-
-3. **Ejecuta la Instalación**:
-   Accede a tu sitio web. WordPress instalará sus tablas base.
-
-4. **Instala WooCommerce**:
-   - Ve a `Plugins > Añadir nuevo`.
-   - Busca "WooCommerce" e instálalo.
-   - Actívalo y sigue el asistente de configuración.
-
-   > **Nota Importante**: Al finalizar el asistente, WooCommerce creará automáticamente sus tablas específicas en la base de datos (ej: `wp_wc_orders`, `wp_wc_order_stats`, etc.).
+1. **Descarga el Driver**: Obtén el código de un proyecto como `PG4WP` desde GitHub.
+2. **Ubicación del Archivo**:
+   - Copia el archivo `db.php` del driver en la carpeta `wp-content/` de tu instalación de WordPress.
+   - La ruta final debe ser: `/var/www/html/wp-content/db.php`.
+   - Si el driver requiere una carpeta `pg4wp`, colócala también en `wp-content/`.
 
 ---
 
-## Paso 4: Entendiendo la Estructura de Datos de WooCommerce
+## Paso 3: Configuración de WordPress
 
-Para integrar o consultar datos, debes conocer dónde se guarda cada cosa. A partir de WooCommerce 8.0+ (HPOS - High Performance Order Storage), los datos se están moviendo a tablas propias.
+Edita el archivo `wp-config.php` para definir las credenciales de PostgreSQL.
 
-### Tablas Clave:
+```php
+define( 'DB_NAME', 'mi_tienda_woo' );
+define( 'DB_USER', 'usuario_woo' );
+define( 'DB_PASSWORD', 'tu_contraseña_segura' );
+define( 'DB_HOST', 'localhost' ); // O la IP de tu servidor PostgreSQL
+define( 'DB_CHARSET', 'utf8' );
+define( 'DB_COLLATE', '' );
 
-| Tabla | Descripción |
-| :--- | :--- |
-| `wp_posts` | Almacena Productos (post_type='product') y Cupones. |
-| `wp_postmeta` | Metadatos de productos (precio, SKU, stock). |
-| `wp_wc_orders` | (Nuevo) Almacena la información principal de los pedidos. |
-| `wp_wc_order_addresses` | Direcciones de facturación y envío. |
-| `wp_wc_product_meta_lookup` | Tabla optimizada para búsquedas rápidas de productos. |
+// Habilitar el driver de PG si requiere constante específica (depende del driver)
+// define( 'PG4WP_DEBUG', true ); 
+```
 
-### Ejemplo de Consulta SQL de Integración
+Una vez configurado, ejecuta el instalador de WordPress accediendo a tu dominio. El archivo `db.php` interceptará las conexiones MySQL y las redirigirá a PostgreSQL.
 
-Si quieres obtener un listado de productos y sus precios directamente desde la base de datos (para un reporte externo):
+---
+
+## Paso 4: Estructura de Datos en PostgreSQL
+
+Al instalarse, WooCommerce creará sus tablas. En PostgreSQL, verifica lo siguiente:
+
+- **Esquemas**: Por defecto, las tablas se crean en el esquema `public`.
+- **Prefijos**: Se mantiene el prefijo definido en `wp-config.php` (ej: `wp_`).
+- **Tipos de Datos**:
+  - `BIGINT` se usa para IDs.
+  - `TEXT` suele reemplazar a `LONGTEXT` de MySQL.
+  - `TIMESTAMP` reemplaza a `DATETIME`.
+
+### Consulta SQL Compatible con PostgreSQL
+
+Para obtener productos y precios (usando casting explícito si es necesario):
 
 ```sql
 SELECT 
-    p.ID as product_id,
-    p.post_title as product_name,
-    MAX(CASE WHEN pm.meta_key = '_price' THEN pm.meta_value END) as price,
-    MAX(CASE WHEN pm.meta_key = '_stock' THEN pm.meta_value END) as stock
+    p.id AS product_id,
+    p.post_title AS product_name,
+    MAX(CASE WHEN pm.meta_key = '_price' THEN pm.meta_value END) AS price,
+    MAX(CASE WHEN pm.meta_key = '_stock' THEN pm.meta_value END) AS stock
 FROM 
     wp_posts p
 JOIN 
-    wp_postmeta pm ON p.ID = pm.post_id
+    wp_postmeta pm ON p.id = pm.post_id
 WHERE 
     p.post_type = 'product' 
     AND p.post_status = 'publish'
 GROUP BY 
-    p.ID;
+    p.id;
 ```
 
 ---
 
-## Paso 5: Integración Avanzada (Tablas Personalizadas)
+## Paso 5: Desarrollo de Tablas Personalizadas
 
-A veces necesitas guardar datos extra que no encajan bien en la estructura estándar (ej: puntos de fidelidad complejos, historial de garantías).
+Para integraciones avanzadas, la sintaxis de creación de tablas cambia respecto a MySQL (ej: `AUTO_INCREMENT` no existe, se usa `SERIAL` o `GENERATED ALWAYS AS IDENTITY`).
 
-### 1. Crear una Tabla Personalizada
-
-Puedes ejecutar esto en tu gestor SQL o mediante un plugin personalizado al activarse:
+### 1. Crear Tabla (Sintaxis PostgreSQL)
 
 ```sql
 CREATE TABLE wp_wc_garantias_extendidas (
-    id mediumint(9) NOT NULL AUTO_INCREMENT,
-    order_id bigint(20) NOT NULL,
-    product_id bigint(20) NOT NULL,
-    fecha_expiracion datetime DEFAULT '0000-00-00 00:00:00' NOT NULL,
-    PRIMARY KEY  (id)
+    id SERIAL PRIMARY KEY,
+    order_id BIGINT NOT NULL,
+    product_id BIGINT NOT NULL,
+    fecha_expiracion TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
+
+-- Crear índices para mejorar rendimiento
+CREATE INDEX idx_garantias_order ON wp_wc_garantias_extendidas(order_id);
 ```
 
-### 2. Insertar Datos desde WooCommerce (Hook)
+### 2. Insertar Datos desde PHP
 
-Para "integrar" esta tabla, usa los ganchos (hooks) de WooCommerce en tu archivo `functions.php`:
+El uso de `$wpdb` en WordPress se mantiene igual, ya que `db.php` traduce la consulta. Sin embargo, evita usar sintaxis exclusiva de MySQL (como backticks \` \` para nombres de tablas/columnas, usa comillas dobles `"` si es necesario, o nada si son minúsculas).
 
 ```php
-add_action( 'woocommerce_order_status_completed', 'registrar_garantia_al_completar' );
+add_action( 'woocommerce_order_status_completed', 'registrar_garantia_pg' );
 
-function registrar_garantia_al_completar( $order_id ) {
+function registrar_garantia_pg( $order_id ) {
     global $wpdb;
     $order = wc_get_order( $order_id );
 
     foreach ( $order->get_items() as $item_id => $item ) {
         $product_id = $item->get_product_id();
         
-        // Insertar en nuestra tabla personalizada
+        // $wpdb->insert maneja la sanitización
         $wpdb->insert( 
             'wp_wc_garantias_extendidas', 
             array( 
                 'order_id' => $order_id, 
                 'product_id' => $product_id,
-                'fecha_expiracion' => date('Y-m-d H:i:s', strtotime('+1 year')) // 1 año de garantía
+                'fecha_expiracion' => date('Y-m-d H:i:s', strtotime('+1 year'))
             ) 
         );
     }
@@ -183,10 +158,8 @@ function registrar_garantia_al_completar( $order_id ) {
 
 ---
 
-## Conclusión
+## Consideraciones Finales
 
-Has creado una base de datos para WooCommerce y aprendido cómo integrarla con datos personalizados. Recuerda:
-
-1. **Respalda siempre** tu base de datos antes de consultas manuales `INSERT/UPDATE`.
-2. Utiliza la clase `$wpdb` de WordPress para consultas seguras.
-3. Intenta usar la **REST API de WooCommerce** para integraciones externas en lugar de acceso directo a la BD, siempre que sea posible, para mantener la integridad de los datos.
+- **Rendimiento**: PostgreSQL maneja mejor concurrencias altas, pero WordPress está optimizado para los índices de MySQL. Monitorea las consultas lentas.
+- **Plugins**: Algunos plugins de WordPress hardcodean consultas MySQL específicas. Estos podrían fallar en PostgreSQL. Testea exhaustivamente en un entorno de staging.
+- **Backups**: Utiliza `pg_dump` para realizar copias de seguridad de tu base de datos.
