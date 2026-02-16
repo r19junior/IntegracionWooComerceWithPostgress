@@ -3,9 +3,9 @@
 Hola Rodrigo, entiendo que te sientas perdido con tantas carpetas y pasos. Esta es tu **GUÍA DEFINITIVA**.
 
 Olvida todo lo anterior si te confundió. Aquí empezamos de nuevo, paso a paso, usando tus datos:
-- **Base de Datos**: `tienda`
-- **Usuario**: `rodrigo`
-- **Contraseña**: `1234` (o la que elijas)
+- **Base de Datos**: `t`
+- **Usuario**: `r`
+- **Contraseña**: `1234`
 
 ---
 
@@ -17,17 +17,17 @@ Necesitamos crear el "terreno" donde vivirá tu tienda.
 2.  Ejecuta este código SQL exacto:
 
 ```sql
--- 1. Crear a Rodrigo
-CREATE USER rodrigo WITH PASSWORD '1234';
+-- 1. Crear al usuario r
+CREATE USER r WITH PASSWORD '1234';
 
--- 2. Crear la Tienda
-CREATE DATABASE tienda OWNER rodrigo ENCODING 'UTF8';
+-- 2. Crear la base de datos t
+CREATE DATABASE t OWNER r ENCODING 'UTF8';
 
--- 3. Darle llaves a Rodrigo
-GRANT ALL PRIVILEGES ON DATABASE tienda TO rodrigo;
+-- 3. Darle llaves a r
+GRANT ALL PRIVILEGES ON DATABASE t TO r;
 ```
 
-✅ **Resultado esperado**: Tienes una base de datos vacía llamada `tienda`.
+✅ **Resultado esperado**: Tienes una base de datos vacía llamada `t`.
 
 ---
 
@@ -62,8 +62,8 @@ WordPress no sabe que existe PostgreSQL, hay que decírselo.
 3.  Borra todo lo que tenga sobre MySQL y pon esto:
 
 ```php
-define( 'DB_NAME', 'tienda' );
-define( 'DB_USER', 'rodrigo' );
+define( 'DB_NAME', 't' ); // Base de datos t
+define( 'DB_USER', 'r' ); // Usuario r
 define( 'DB_PASSWORD', '1234' ); // Tu contraseña
 define( 'DB_HOST', 'localhost' );
 define( 'DB_CHARSET', 'utf8' );
@@ -90,7 +90,7 @@ define( 'PG4WP_CHARSET', 'utf8' );
 1.  Entra al escritorio de WordPress (`/wp-admin`).
 2.  Ve a **Plugins > Añadir nuevo**.
 3.  Busca "WooCommerce", instálalo y actívalo.
-4.  WooCommerce detectará automáticamente que estás en PostgreSQL y creará sus tablas (pedidos, productos, clientes) en tu base de datos `tienda`.
+4.  WooCommerce detectará automáticamente que estás en PostgreSQL y creará sus tablas (pedidos, productos, clientes) en tu base de datos `t`.
 
 ---
 
@@ -99,7 +99,7 @@ define( 'PG4WP_CHARSET', 'utf8' );
 Si necesitas guardar datos extra (como garantías o historiales), usa este SQL en pgAdmin:
 
 ```sql
--- Conéctate a la base de datos 'tienda' antes de ejecutar esto
+-- Conéctate a la base de datos 't' antes de ejecutar esto
 CREATE TABLE wp_historial_envios (
     envio_id SERIAL PRIMARY KEY,
     order_id BIGINT NOT NULL,
@@ -108,4 +108,4 @@ CREATE TABLE wp_historial_envios (
 );
 ```
 
-¡Y eso es todo! Has convertido WordPress para usar PostgreSQL con tu usuario `rodrigo`.
+¡Y eso es todo! Has convertido WordPress para usar PostgreSQL con tu usuario `r`.
