@@ -85,4 +85,28 @@ Una vez dentro del panel de administración (wp-admin):
 ---
 **Solución de Problemas Comunes**:
 - **"Error establishing a database connection"**: Revisa que el servicio de PostgreSQL esté corriendo y que la contraseña en `wp-config.php` sea correcta.
-- **Pantalla en blanco**: Revisa que tengas instalada la extensión `php_pgsql` o `php_pdo_pgsql` en tu archivo `php.ini` de XAMPP/WAMP.
+- **Pantalla en blanco**: Revisa que tengas instalada la extensión `php_pgsql` o `php_pdo_pgsql` en tu archivo `php.ini`.
+
+---
+
+# ¡Excelente noticia!
+
+Si estás viendo esa pantalla de selección de idioma, significa que **has superado el obstáculo técnico más difícil**.
+
+Esa imagen confirma lo siguiente:
+
+1.  **PHP ya reconoce PostgreSQL**: El error de la extensión desapareció.
+2.  **El driver PG4WP está funcionando**: WordPress ha detectado el archivo `db.php` en `wp-content` y, en lugar de darte un error de base de datos, ha procedido a la instalación.
+3.  **La conexión es exitosa**: WordPress ya se comunicó con tu base de datos PostgreSQL para verificar que puede empezar a escribir las tablas.
+
+## ¿Qué sigue ahora?
+
+Solo debes continuar con el flujo normal de instalación de WordPress:
+
+1.  **Selecciona tu idioma** (Español) y haz clic en **Continuar**.
+2.  **Información necesaria**: Te pedirá el título del sitio, tu nombre de usuario administrador, una contraseña y tu correo electrónico.
+3.  **Finalizar**: Haz clic en "Instalar WordPress".
+
+### Un último consejo de "pro"
+
+Una vez que entres al escritorio (Dashboard), ve a **Plugins > Añadir nuevo** y busca **WooCommerce** para completar tu objetivo original. Al activarlo, WooCommerce creará automáticamente sus tablas en PostgreSQL sin que tengas que hacer nada manual.
